@@ -818,10 +818,6 @@ namespace
         std::string connectedUsername;
         bool connectionApproved = false;
 
-
-
-        markUserOnline(connectedUsername);
-
         while (serverRunning)
         {
             if (const int bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0); bytesReceived > 0)
@@ -841,7 +837,16 @@ namespace
                     JsonMessage msg = JsonHelper::parseMessage(completeMessage);
                     std::string response;
 
-                    if (!connectionApproved && !msg.username.empty() && validateToken(msg.authToken, msg.username))
+                    if (players.contains(msg.username) && players[msg.username].isAdmin)
+                    {
+                        // Admins bypass the server availability check.
+                        connectionApproved = true;
+                        connectedUsername = msg.username;
+                        markUserOnline(connectedUsername);
+                        incrementConnections();
+                        std::cout << "Connection approved for " << msg.username << std::endl;
+                    }
+                    else if (!connectionApproved && !msg.username.empty() && validateToken(msg.authToken, msg.username))
                     {
                         if (!canUserConnect(msg.username, msg.authToken)) // Admin can always connect.
                         {
